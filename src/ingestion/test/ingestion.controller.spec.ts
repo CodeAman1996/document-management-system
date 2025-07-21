@@ -1,16 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { IngestionController } from '../controllers/ingestion.controller';
 import { IngestionService } from '../service/ingestion.service';
-import { TriggerIngestionDto } from '../dto/trigger-ingestion.dto';
 
 describe('IngestionController', () => {
   let controller: IngestionController;
-  let ingestionService: IngestionService;
-
-  const mockIngestionService = {
-    trigger: jest.fn().mockResolvedValue({ success: true }),
-    getStatus: jest.fn().mockResolvedValue({ status: 'completed', documentId: '123' }),
-  };
+  let service;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -18,25 +12,58 @@ describe('IngestionController', () => {
       providers: [
         {
           provide: IngestionService,
-          useValue: mockIngestionService,
+          useValue: {
+            triggerIngestion: jest.fn().mockResolvedValue({
+              id: 'test-id',
+              documentId: 'test-document-id',
+              source: 'test-source',
+              status: 'pending',
+              createdAt: new Date(),
+              result: null,
+            }),
+            getIngestionStatus: jest.fn().mockResolvedValue({
+              id: 'test-id',
+              documentId: 'test-document-id',
+              source: 'test-source',
+              status: 'completed',
+              createdAt: new Date(),
+              result: 'test-result',
+            }),
+          },
         },
       ],
     }).compile();
 
     controller = module.get<IngestionController>(IngestionController);
-    ingestionService = module.get<IngestionService>(IngestionService);
+    service = module.get<IngestionService>(IngestionService);
   });
 
   it('should trigger ingestion', async () => {
-    const dto: TriggerIngestionDto = { source: 'test.pdf' };
-    const result = await controller.trigger(dto);
-    expect(ingestionService.trigger).toHaveBeenCalledWith(dto);
-    expect(result).toEqual({ success: true });
+    const result = await controller.triggerIngestion({
+      documentId: 'test-document-id',
+      source: 'test-source',
+    });
+    expect(result).toEqual({
+      id: 'test-id',
+      documentId: 'test-document-id',
+      source: 'test-source',
+      status: 'pending',
+      createdAt: expect.any(Date),
+      result: null,
+    });
+    expect(service.triggerIngestion).toHaveBeenCalledTimes(1);
   });
 
   it('should get ingestion status', async () => {
-    const result = await controller.getStatus('123');
-    expect(ingestionService.getStatus).toHaveBeenCalledWith('123');
-    expect(result).toEqual({ status: 'completed', documentId: '123' });
+    const result = await controller.getIngestionStatus('test-id');
+    expect(result).toEqual({
+      id: 'test-id',
+      documentId: 'test-document-id',
+      source: 'test-source',
+      status: 'completed',
+      createdAt: expect.any(Date),
+      result: 'test-result',
+    });
+    expect(service.getIngestionStatus).toHaveBeenCalledTimes(1);
   });
 });

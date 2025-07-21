@@ -25,6 +25,26 @@ A robust, scalable document management system built using **NestJS**, supporting
 
 ---
 
+## Entity Relationship
+
+### Document ⟶ User
+
+- A `User` can have **multiple Documents**.
+- A `Document` always belongs to **exactly one User**.
+- This relationship is enforced using a `@ManyToOne` and `@OneToMany` mapping via TypeORM.
+- Only the owner of a document (based on `ownerId`) can access, update, or delete it — unless the user is an Admin.
+
+````ts
+// user.entity.ts
+@OneToMany(() => Document, (document) => document.owner)
+documents: Document[];
+
+// document.entity.ts
+@ManyToOne(() => User, (user) => user.documents, { eager: true })
+@JoinColumn({ name: 'ownerId' })
+owner: User;
+
+
 ## Folder Structure
 
 src/
@@ -85,14 +105,17 @@ npm run test:e2e
 
 # Run tests with coverage
 npm run test:cov
-```
+````
+
 # PostgreSQL Configuration
+
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
-POSTGRES_USER=your_postgres_username   
-POSTGRES_PASSWORD=your_postgres_password   
+POSTGRES_USER=your_postgres_username  
+POSTGRES_PASSWORD=your_postgres_password  
 POSTGRES_DB=documentdb
 
 # JWT Configuration
-JWT_SECRET=your_super_secure_secret 
+
+JWT_SECRET=your_super_secure_secret
 JWT_EXPIRES_IN=1d

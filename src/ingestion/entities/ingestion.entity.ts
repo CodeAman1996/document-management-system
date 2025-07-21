@@ -1,9 +1,17 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+} from 'typeorm';
 
 @Entity()
 export class Ingestion {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column()
+  documentId: string;
 
   @Column()
   source: string;
@@ -14,6 +22,6 @@ export class Ingestion {
   @CreateDateColumn()
   createdAt: Date;
 
-  @Column({ nullable: true })
-  result: string;
+ @Column({ nullable: true, type: 'text' })
+result: string | null;
 }

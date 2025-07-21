@@ -1,4 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+
+import { User } from 'src/users/entities/user.entity';
 
 @Entity()
 export class Document {
@@ -16,6 +25,13 @@ export class Document {
 
   @Column()
   path: string;
+
+  @ManyToOne(() => User, (user) => user.documents, { eager: true })
+  @JoinColumn({ name: 'ownerId' })
+  owner: User;
+
+  @Column()
+  ownerId: string;
 
   @CreateDateColumn()
   uploadedAt: Date;
