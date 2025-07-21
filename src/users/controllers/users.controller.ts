@@ -14,13 +14,23 @@ import { RegisterDto } from '../dto/register.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { SkipAuthGuard } from 'src/auth/skipauth.guard';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 
+@ApiTags('Users')
+@ApiBearerAuth()
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
   @Roles('admin')
+  @ApiOperation({ summary: 'Create a new user (Admin only)' })
+  @ApiResponse({ status: 201, description: 'User successfully created.' })
   async create(@Body() registerDto: RegisterDto) {
     try {
       const user = await this.usersService.create(registerDto);
@@ -37,6 +47,8 @@ export class UsersController {
 
   @Post('register')
   @SkipAuthGuard()
+  @ApiOperation({ summary: 'Create a new user' })
+  @ApiResponse({ status: 201, description: 'User successfully created.' })
   async register(@Body() registerDto: RegisterDto) {
     try {
       const user = await this.usersService.create(registerDto);
@@ -53,6 +65,8 @@ export class UsersController {
 
   @Get()
   @Roles('admin')
+  @ApiOperation({ summary: 'Get all users data' })
+  @ApiResponse({ status: 201, description: 'Getting All Users Data.' })
   async findAll() {
     try {
       const getAllUsers = await this.usersService.findAll();
@@ -68,6 +82,8 @@ export class UsersController {
 
   @Get(':id')
   @Roles('admin', 'editor', 'viewer')
+  @ApiOperation({ summary: 'Get user by ID (Admin only)' })
+  @ApiResponse({ status: 200, description: 'User found.' })
   async findOne(@Param('id') id: string) {
     try {
       const userById = await this.usersService.findOne(id);
@@ -83,6 +99,8 @@ export class UsersController {
 
   @Patch(':id')
   @Roles('admin', 'editor', 'viewer')
+  @ApiOperation({ summary: 'Update user by ID ' })
+  @ApiResponse({ status: 200, description: 'User details Updated.' })
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     try {
       console.log();
@@ -99,6 +117,8 @@ export class UsersController {
 
   @Delete(':id')
   @Roles('admin')
+  @ApiOperation({ summary: 'Delete user by ID ' })
+  @ApiResponse({ status: 200, description: 'User details Deleted.' })
   async remove(@Param('id') id: string) {
     try {
       const deleteUser = await this.usersService.remove(id);

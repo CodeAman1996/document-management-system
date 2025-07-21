@@ -1,31 +1,31 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Ingestion } from '../entities/ingestion.entity';
 import { Repository } from 'typeorm';
-import { TriggerIngestionDto } from '../dto/trigger-ingestion.dto';
 import { ClientProxy } from '@nestjs/microservices';
+import { Inject } from '@nestjs/common';
 
 @Injectable()
 export class IngestionService {
   constructor(
     @InjectRepository(Ingestion)
-    private ingestionRepo: Repository<Ingestion>,
+    private ingestionRepository: Repository<Ingestion>,
     @Inject('PYTHON_SERVICE') private readonly pythonClient: ClientProxy,
   ) {}
 
-  async trigger(dto: TriggerIngestionDto) {
-    const ingestion = this.ingestionRepo.create({ source: dto.source });
-    await this.ingestionRepo.save(ingestion);
-
-    this.pythonClient.emit('start_ingestion', {
-      ingestionId: ingestion.id,
-      source: dto.source,
+  async triggerIngestion(documentId: string, source: string) {
+    const ingestion = this.ingestionRepository.create({
+      documentId,
+      source,
+      status: 'pending',
+      result: '',
     });
-
+    await this.ingestionRepository.save(ingestion);
+    this.pythonClient.emit('start_ingestion', { ingestionId: ingestion.id });
     return ingestion;
   }
 
-  async getStatus(id: string) {
-    return this.ingestionRepo.findOneBy({ id });
+  async getIngestionStatus(ingestionId: string) {
+    return this.ingestionRepository.findOne({ where: { id: ingestionId } });
   }
 }

@@ -4,7 +4,10 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+
+import { Document } from 'src/documents/entities/document.entity';
 
 export enum RoleEnum {
   ADMIN = 'ADMIN',
@@ -35,6 +38,9 @@ export class User {
     default: RoleEnum.VIEWER,
   })
   role: RoleEnum;
+
+  @OneToMany(() => Document, (doc) => doc.owner)
+  documents: Document[];
 
   @CreateDateColumn()
   createdAt: Date;

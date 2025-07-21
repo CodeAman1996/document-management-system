@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Document } from '../entities/document.entity';
@@ -9,38 +9,44 @@ import { UpdateDocumentDto } from '../dto/update-document.dto';
 export class DocumentsService {
   constructor(
     @InjectRepository(Document)
-    private documentRepository: Repository<Document>,
+    private documentsRepository: Repository<Document>,
   ) {}
 
-  async create(createDocumentDto: CreateDocumentDto): Promise<Document> {
-    const doc = this.documentRepository.create(createDocumentDto);
-    return this.documentRepository.save(doc);
+  async create(createDocumentDto: CreateDocumentDto, userId: string) {
+    const document = this.documentsRepository.create({
+      ...createDocumentDto,
+      ownerId: userId,
+    });
+    return this.documentsRepository.save(document);
   }
 
-  findAll(): Promise<Document[]> {
-    return this.documentRepository.find();
+  async findAllByUser(userId: string) {
+    return this.documentsRepository.find({ where: { ownerId: userId } });
   }
 
-  async findOne(id: string): Promise<Document> {
-    const doc = await this.documentRepository.findOneBy({ id });
-    if (!doc) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
-
-    return doc;
+  async findOne(id: string, userId: string) {
+    const document = await this.documentsRepository.findOne({ where: { id } });
+    if (!document) throw new NotFoundException('Document not found');
+    if (document.ownerId !== userId)
+      throw new ForbiddenException('Access to this document is denied');
+    return document;
   }
 
-  async update(id: string, updateDto: UpdateDocumentDto) {
-    if (!updateDto || Object.keys(updateDto).length === 0) {
-      throw new BadRequestException('No update data provided.');
-    }
-
-    await this.documentRepository.update(id, updateDto);
-
-    return this.findOne(id);
+  async update(id: string, updateDocumentDto: UpdateDocumentDto, userId: string) {
+    const doc = await this.findOne(id, userId);
+    Object.assign(doc, updateDocumentDto);
+    return this.documentsRepository.save(doc);
   }
 
-  async remove(id: string): Promise<void> {
-    await this.documentRepository.delete(id);
+  async remove(id: string, userId: string) {
+    const doc = await this.findOne(id, userId);
+    return this.documentsRepository.remove(doc);
   }
+
+  async findAllByUserId(userId: string) {
+  return this.documentsRepository.find({
+    where: { ownerId: userId },
+  });
+}
+
 }
