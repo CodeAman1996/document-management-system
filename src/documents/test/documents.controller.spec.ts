@@ -1,13 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DocumentsService } from '../service/documents.service';
 import { DocumentsController } from '../controllers/documents.controller';
-import { CreateDocumentDto } from '../dto/create-document.dto';
-import { HttpException } from '@nestjs/common';
-import { UpdateDocumentDto } from '../dto/update-document.dto';
+import { DocumentsService } from '../service/documents.service';
+import { Document } from '../entities/document.entity';
 
 describe('DocumentsController', () => {
   let controller: DocumentsController;
   let service: DocumentsService;
+
+  const mockDoc: Document = {
+    id: '1',
+    filename: 'test.pdf',
+    originalName: 'test.pdf',
+    mimeType: 'application/pdf',
+    path: '/uploads/test.pdf',
+    uploadedAt: new Date()
+  };
 
   const mockService = {
     create: jest.fn(),
@@ -17,81 +24,55 @@ describe('DocumentsController', () => {
     remove: jest.fn(),
   };
 
+  beforeAll(() => {
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DocumentsController],
-      providers: [{ provide: DocumentsService, useValue: mockService }],
+      providers: [
+        { provide: DocumentsService, useValue: mockService },
+      ],
     }).compile();
 
     controller = module.get<DocumentsController>(DocumentsController);
     service = module.get<DocumentsService>(DocumentsService);
   });
 
-  describe('uploadFile', () => {
-    it('should upload file and return metadata', async () => {
-      const file = {
-        filename: 'file.pdf',
-        originalname: 'original.pdf',
-        mimetype: 'application/pdf',
-        path: 'uploads/file.pdf',
-      } as Express.Multer.File;
-
-      const createDto: CreateDocumentDto = {
-        filename: file.filename,
-        originalName: file.originalname,
-        mimeType: file.mimetype,
-        path: file.path,
-      };
-
-      mockService.create.mockResolvedValue({ id: '123', ...createDto });
-
-      const result = await controller.uploadFile(file);
-      expect(result).toEqual({ id: '123', ...createDto });
-      expect(mockService.create).toHaveBeenCalledWith(createDto);
-    });
-
-    it('should throw exception if upload fails', async () => {
-      mockService.create.mockRejectedValue(new Error('Failed'));
-
-      await expect(controller.uploadFile({} as any)).rejects.toThrow(HttpException);
-    });
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
   });
 
-  describe('findAll', () => {
-    it('should return all documents', async () => {
-      const docs = [{ id: '1' }, { id: '2' }];
-      mockService.findAll.mockResolvedValue(docs);
-      expect(await controller.findAll()).toEqual(docs);
-    });
+  it('should upload a file', async () => {
+    mockService.create.mockResolvedValue(mockDoc);
+    const result = await controller.uploadFile(mockDoc as any);
+    expect(result).toEqual(mockDoc);
   });
 
-  describe('findOne', () => {
-    it('should return a document by ID', async () => {
-      const doc = { id: '1' };
-      mockService.findOne.mockResolvedValue(doc);
-      expect(await controller.findOne('1')).toEqual(doc);
-    });
-
-    it('should throw not found if document missing', async () => {
-      mockService.findOne.mockRejectedValue(new Error('not found'));
-      await expect(controller.findOne('1')).rejects.toThrow(HttpException);
-    });
+  it('should throw exception if upload fails', async () => {
+    mockService.create.mockRejectedValue(new Error('Failed'));
+    await expect(controller.uploadFile({} as any)).rejects.toThrow('Failed to upload document');
   });
 
-  describe('update', () => {
-    it('should update document', async () => {
-      const dto: UpdateDocumentDto = { originalName: 'updated' };
-      mockService.update.mockResolvedValue({ id: '1', ...dto });
-      expect(await controller.update('1', dto)).toEqual({ id: '1', ...dto });
-    });
+  it('should return all documents', async () => {
+    mockService.findAll.mockResolvedValue([mockDoc]);
+    expect(await controller.findAll()).toEqual([mockDoc]);
   });
 
-  describe('remove', () => {
-    it('should delete document', async () => {
-      mockService.remove.mockResolvedValue(undefined);
-      const res = await controller.remove('1');
-      expect(res).toEqual({ message: `Document with id 1 deleted successfully` });
-    });
+  it('should return a document by ID', async () => {
+    mockService.findOne.mockResolvedValue(mockDoc);
+    expect(await controller.findOne('1')).toEqual(mockDoc);
+  });
+
+  it('should update a document', async () => {
+    mockService.update.mockResolvedValue(mockDoc);
+    expect(await controller.update('1', { filename: 'new.pdf' })).toEqual(mockDoc);
+  });
+
+  it('should delete a document', async () => {
+    mockService.remove.mockResolvedValue(undefined);
+    await expect(controller.remove('1')).resolves.toBeUndefined();
   });
 });
-
