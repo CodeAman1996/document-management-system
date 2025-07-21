@@ -6,21 +6,39 @@ import { Repository } from 'typeorm';
 
 describe('DocumentsService', () => {
   let service: DocumentsService;
-  let repo: Repository<Document>;
+  let mockRepository: Partial<Repository<Document>>;
+
+  const mockDocument = {
+    id: '123',
+    filename: 'file.pdf',
+    originalName: 'doc.pdf',
+    mimeType: 'application/pdf',
+    path: '/uploads/file.pdf',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   beforeEach(async () => {
+    mockRepository = {
+      create: jest.fn().mockReturnValue(mockDocument),
+      save: jest.fn().mockResolvedValue(mockDocument),
+      find: jest.fn().mockResolvedValue([mockDocument]),
+      findOneBy: jest.fn().mockResolvedValue(mockDocument),
+      update: jest.fn().mockResolvedValue({ affected: 1 }),
+      delete: jest.fn().mockResolvedValue({ affected: 1 }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DocumentsService,
         {
           provide: getRepositoryToken(Document),
-          useClass: Repository,
+          useValue: mockRepository,
         },
       ],
     }).compile();
 
     service = module.get<DocumentsService>(DocumentsService);
-    repo = module.get<Repository<Document>>(getRepositoryToken(Document));
   });
 
   it('should be defined', () => {
@@ -28,15 +46,16 @@ describe('DocumentsService', () => {
   });
 
   it('should create a document', async () => {
-    const mockDoc = {
+    const createDto = {
       filename: 'file.pdf',
       originalName: 'doc.pdf',
       mimeType: 'application/pdf',
       path: '/uploads/file.pdf',
     };
 
-    jest.spyOn(repo, 'save').mockResolvedValue(mockDoc as any);
-    const result = await service.create(mockDoc as any);
-    expect(result).toEqual(mockDoc);
+    const result = await service.create(createDto as any);
+    expect(mockRepository.create).toHaveBeenCalledWith(createDto);
+    expect(mockRepository.save).toHaveBeenCalledWith(mockDocument);
+    expect(result).toEqual(mockDocument);
   });
 });
